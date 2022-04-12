@@ -10,6 +10,8 @@ import torchvision.utils as vutils
 from core.loader.data_loader import *
 from core.metrics import runningScore
 from core.utils import np_to_tb
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 
 def test(args):

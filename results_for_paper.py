@@ -1,10 +1,11 @@
 import torch
-from core.models.ViTNet import mydnn_18
+# from core.models.ViTNet import dnn_18
+from core.models.SCPANet import SCPANet_skip
 from thop import clever_format
 from thop import profile
 
-model = mydnn_18(num_classes=6).cuda(2)
-input = torch.randn(1, 1,256,256).cuda(2)
+model = SCPANet_skip(n_classes=6).cuda(2)
+input = torch.randn(1,1,256,256).cuda(2)
 macs, params = profile(model, inputs=(input, ))
 macs, params = clever_format([macs, params], "%.3f")
 

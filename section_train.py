@@ -275,11 +275,11 @@ def train(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
-    parser.add_argument('--arch', nargs='?', type=str, default='ViT',
+    parser.add_argument('--arch', nargs='?', type=str, default='SCPANet_skip',
                         help='Architecture to use [\'PSNet, patch_deconvnet, patch_deconvnet_skip, section_deconvnet, section_deconvnet_skip\']')
     parser.add_argument('--n_epoch', nargs='?', type=int, default=100,
                         help='# of the epochs')
-    parser.add_argument('--batch_size', nargs='?', type=int, default=8,
+    parser.add_argument('--batch_size', nargs='?', type=int, default=12,
                         help='Batch Size')
     parser.add_argument('--resume', nargs='?', type=str, default=None,
                         help='Path to previous saved model to restart from')
