@@ -277,15 +277,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
     parser.add_argument('--arch', nargs='?', type=str, default='SCPANet_skip',
                         help='Architecture to use [\'PSNet, patch_deconvnet, patch_deconvnet_skip, section_deconvnet, section_deconvnet_skip\']')
-    parser.add_argument('--n_epoch', nargs='?', type=int, default=100,
+    parser.add_argument('--n_epoch', nargs='?', type=int, default=64,
                         help='# of the epochs')
-    parser.add_argument('--batch_size', nargs='?', type=int, default=12,
+    parser.add_argument('--batch_size', nargs='?', type=int, default=32,
                         help='Batch Size')
     parser.add_argument('--resume', nargs='?', type=str, default=None,
                         help='Path to previous saved model to restart from')
     parser.add_argument('--clip', nargs='?', type=float, default=0.1,
                         help='Max norm of the gradients if clipping. Set to zero to disable. ')
-    parser.add_argument('--per_val', nargs='?', type=float, default=0.05,
+    parser.add_argument('--per_val', nargs='?', type=float, default=0.1,
                         help='percentage of the training data for validation')
     parser.add_argument('--pretrained', nargs='?', type=bool, default=False,
                         help='Pretrained ms_models not supported. Keep as False for now.')

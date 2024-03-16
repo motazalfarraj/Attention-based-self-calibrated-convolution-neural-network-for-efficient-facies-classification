@@ -1,45 +1,7 @@
 import torch.nn as nn
 import torch
 from timm.models.layers import trunc_normal_, DropPath
-from core.models.ViT.models.preresnet_dnn_block import Bottleneck, BasicBottleneck
-
-class ConvNeXtBlock(nn.Module):
-    r""" ConvNeXt Block. There are two equivalent implementations:
-    (1) DwConv -> LayerNorm (channels_first) -> 1x1 Conv -> GELU -> 1x1 Conv; all in (N, C, H, W)
-    (2) DwConv -> Permute to (N, H, W, C); LayerNorm (channels_last) -> Linear -> GELU -> Linear; Permute back
-    We use (2) as we find it slightly faster in PyTorch
-
-    Args:
-        dim (int): Number of input channels.
-        drop_path (float): Stochastic depth rate. Default: 0.0
-        layer_scale_init_value (float): Init value for Layer Scale. Default: 1e-6.
-    """
-
-    def __init__(self, dim, drop_path=0., layer_scale_init_value=1e-6):
-        super().__init__()
-        self.dwconv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)  # depthwise conv
-        self.norm = nn.LayerNorm(dim, eps=1e-6)
-        self.pwconv1 = nn.Linear(dim, 4 * dim)  # pointwise/1x1 convs, implemented with linear layers
-        self.act = nn.GELU()
-        self.pwconv2 = nn.Linear(4 * dim, dim)
-        self.gamma = nn.Parameter(layer_scale_init_value * torch.ones((dim)),
-                                  requires_grad=True) if layer_scale_init_value > 0 else None
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-
-    def forward(self, x):
-        input = x
-        x = self.dwconv(x)
-        x = x.permute(0, 2, 3, 1)  # (N, C, H, W) -> (N, H, W, C)
-        x = self.norm(x)
-        x = self.pwconv1(x)
-        x = self.act(x)
-        x = self.pwconv2(x)
-        if self.gamma is not None:
-            x = self.gamma * x
-        x = x.permute(0, 3, 1, 2)  # (N, H, W, C) -> (N, C, H, W)
-
-        x = input + self.drop_path(x)
-        return x
+from core.models.ViT.models.seresnet_dnn_block import Bottleneck, BasicBlock
 
 class PAConv(nn.Module):
     def __init__(self, nf, k_size=3):
@@ -101,21 +63,15 @@ class ModSCPA(nn.Module):
 
         scpa_block = nn.Sequential(*[SCPA(ch_out, drop_path=drop_path) for _ in range(depth)])
 
-        self.activation = nn.GELU()
 
         if ch_in == ch_out:
             self.layer = scpa_block
         elif ch_in<ch_out:
-            self.layer = nn.Sequential(
-                            nn.Conv2d(ch_in, ch_out, kernel_size = self.kernel_size, padding=(self.kernel_size-1)//2),
-                            nn.BatchNorm2d(ch_out, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-                            self.activation,
-                            scpa_block)
+            self.layer = nn.Sequential( BasicBlock(ch_in, ch_out), 
+                                        scpa_block)
         else:
             self.layer = nn.Sequential(
-                            nn.ConvTranspose2d(ch_in, ch_out, kernel_size = self.kernel_size, padding=(self.kernel_size-1)//2),
-                            nn.BatchNorm2d(ch_out, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-                            self.activation,
+                            BasicBlock(ch_in, ch_out),
                             scpa_block)
 
     def forward(self, x):
@@ -141,7 +97,7 @@ class SCPANet_skip(nn.Module):
 
         self.bottleneck = nn.Sequential(Bottleneck(in_channels=self.channels_conv[4], channels=self.channels_conv[4]),
                                         ModSCPA(ch_in=4*self.channels_conv[4],ch_out=4*self.channels_conv[4], depth=4),
-                                        BasicBottleneck(in_channels=4*self.channels_conv[4], channels=self.channels_conv[4]))
+                                        BasicBlock(in_channels=4*self.channels_conv[4], channels=self.channels_conv[4]))
 
         self.dconv_5 = ModSCPA(ch_in=self.channels_conv[-1], ch_out=self.channels_conv[-2], depth=self.block_depth[0],drop_path=self.drop)
         self.dconv_4 = ModSCPA(ch_in=self.channels_conv[-2], ch_out=self.channels_conv[-3], depth=self.block_depth[1],drop_path=self.drop)
