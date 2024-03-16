@@ -1,7 +1,118 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 from timm.models.layers import trunc_normal_, DropPath
-from core.models.ViT.models.seresnet_dnn_block import Bottleneck, BasicBlock
+# from core.models.ViT.models.seresnet_mcdo_block import Bottleneck, BasicBlock
+import torch.nn.functional as F
+import core.models.ViT.models.layers as layers
+import core.models.ViT.models.gates as gates
+
+
+class BasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, in_channels, channels,
+                 stride=1, groups=1, width_per_group=64, rate=0.3, sd=0.0,
+                 reduction=16, **block_kwargs):
+        super(BasicBlock, self).__init__()
+
+        if groups != 1 or width_per_group != 64:
+            raise ValueError("BasicBlock only supports groups=1 and base_width=64")
+        width = int(channels * (width_per_group / 64.)) * groups
+
+        self.rate = rate
+
+        self.shortcut = []
+        if stride != 1 or in_channels != channels * self.expansion:
+            self.shortcut.append(layers.conv1x1(in_channels, channels * self.expansion, stride=stride))
+            self.shortcut.append(layers.bn(channels * self.expansion))
+        self.shortcut = nn.Sequential(*self.shortcut)
+
+        self.conv1 = nn.Sequential(
+            layers.conv3x3(in_channels, width, stride=stride),
+            layers.bn(width),
+            nn.PReLU(),
+        )
+        self.conv2 = nn.Sequential(
+            layers.conv3x3(width, channels * self.expansion),
+            layers.bn(channels * self.expansion),
+        )
+
+        self.relu = nn.PReLU()
+        self.sd = layers.DropPath(sd) if sd > 0.0 else nn.Identity()
+        self.gate = gates.ChannelGate(channels * self.expansion, reduction, max_pool=False)
+
+    def forward(self, x):
+        skip = self.shortcut(x)
+
+        x = self.conv1(x)
+        x = F.dropout(x, p=self.rate)
+        x = self.conv2(x)
+        x = self.gate(x)
+
+        x = self.sd(x) + skip
+        x = self.relu(x)
+
+        return x
+
+    def extra_repr(self):
+        return "rate=%.3e" % self.rate
+
+
+class Bottleneck(nn.Module):
+    expansion = 4
+
+    def __init__(self, in_channels, channels,
+                 stride=1, groups=1, width_per_group=64, rate=0.3, sd=0.0,
+                 reduction=16, **block_kwargs):
+        super(Bottleneck, self).__init__()
+
+        width = int(channels * (width_per_group / 64.)) * groups
+
+        self.rate = rate
+
+        self.shortcut = []
+        if stride != 1 or in_channels != channels * self.expansion:
+            self.shortcut.append(layers.conv1x1(
+                in_channels, channels * self.expansion, stride=stride))
+            self.shortcut.append(layers.bn(channels * self.expansion))
+        self.shortcut = nn.Sequential(*self.shortcut)
+
+        self.conv1 = nn.Sequential(
+            layers.conv1x1(in_channels, width),
+            layers.bn(width),
+            nn.PReLU(),
+        )
+        self.conv2 = nn.Sequential(
+            layers.conv3x3(width, width, stride=stride, groups=groups),
+            layers.bn(width),
+            nn.PReLU(),
+        )
+        self.conv3 = nn.Sequential(
+            layers.conv1x1(width, channels * self.expansion),
+            layers.bn(channels * self.expansion),
+        )
+
+        self.relu = nn.PReLU()
+        self.sd = layers.DropPath(sd) if sd > 0.0 else nn.Identity()
+        self.gate = gates.ChannelGate(channels * self.expansion, reduction, max_pool=False)
+
+    def forward(self, x):
+        skip = self.shortcut(x)
+
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = F.dropout(x, p=self.rate)
+        x = self.conv3(x)
+        x = self.gate(x)
+
+        x = self.sd(x) + skip
+        x = self.relu(x)
+
+        return x
+
+    def extra_repr(self):
+        return "rate=%.3e" % self.rate
+
 
 class PAConv(nn.Module):
     def __init__(self, nf, k_size=3):
@@ -36,20 +147,24 @@ class SCPA(nn.Module):
         self.conv3 = nn.Conv2d(
             group_width * reduction, nf, kernel_size=1, bias=False)
 
-        self.activation = nn.GELU()
+        self.activation1 = nn.PReLU()
+        self.activation2 = nn.PReLU()
+        self.activation3 = nn.PReLU()
+        self.activation4 = nn.PReLU()
+        
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
     def forward(self, x):
         residual = x
         out_a = self.conv1_a(x)
-        out_a = self.activation(out_a)
+        out_a = self.activation1(out_a)
         out_a = self.k1(out_a)
-        out_a = self.activation(out_a)
+        out_a = self.activation2(out_a)
 
         out_b = self.conv1_b(x)
-        out_b = self.activation(out_b)
+        out_b = self.activation3(out_b)
         out_b = self.PAConv(out_b)
-        out_b = self.activation(out_b)
+        out_b = self.activation4(out_b)
 
         out = residual + self.drop_path(self.conv3(torch.cat([out_a, out_b], dim=1)))
 
@@ -95,15 +210,15 @@ class SCPANet_skip(nn.Module):
         self.conv_4 = ModSCPA(ch_in=self.channels_conv[2], ch_out=self.channels_conv[3], depth=self.block_depth[3],drop_path=self.drop)
         self.conv_5 = ModSCPA(ch_in=self.channels_conv[3], ch_out=self.channels_conv[4], depth=self.block_depth[4],drop_path=self.drop)
 
-        self.bottleneck = nn.Sequential(Bottleneck(in_channels=self.channels_conv[4], channels=self.channels_conv[4]),
-                                        ModSCPA(ch_in=4*self.channels_conv[4],ch_out=4*self.channels_conv[4], depth=4),
-                                        BasicBlock(in_channels=4*self.channels_conv[4], channels=self.channels_conv[4]))
+        self.bottleneck = nn.Sequential(Bottleneck(in_channels=self.channels_conv[4], channels=self.channels_conv[4], rate=self.drop),
+                                        ModSCPA(ch_in=4*self.channels_conv[4],ch_out=4*self.channels_conv[4], depth=2, drop_path=self.drop),
+                                        BasicBlock(in_channels=4*self.channels_conv[4], channels=self.channels_conv[4], rate=self.drop))
 
-        self.dconv_5 = ModSCPA(ch_in=self.channels_conv[-1], ch_out=self.channels_conv[-2], depth=self.block_depth[0],drop_path=self.drop)
-        self.dconv_4 = ModSCPA(ch_in=self.channels_conv[-2], ch_out=self.channels_conv[-3], depth=self.block_depth[1],drop_path=self.drop)
+        self.dconv_5 = ModSCPA(ch_in=self.channels_conv[-1], ch_out=self.channels_conv[-2], depth=self.block_depth[4],drop_path=self.drop)
+        self.dconv_4 = ModSCPA(ch_in=self.channels_conv[-2], ch_out=self.channels_conv[-3], depth=self.block_depth[3],drop_path=self.drop)
         self.dconv_3 = ModSCPA(ch_in=self.channels_conv[-3], ch_out=self.channels_conv[-4], depth=self.block_depth[2],drop_path=self.drop)
-        self.dconv_2 = ModSCPA(ch_in=self.channels_conv[-4], ch_out=self.channels_conv[-5], depth=self.block_depth[3],drop_path=self.drop)
-        self.dconv_1 = ModSCPA(ch_in=self.channels_conv[-5], ch_out=self.channels_conv[-5], depth=self.block_depth[4],drop_path=self.drop)
+        self.dconv_2 = ModSCPA(ch_in=self.channels_conv[-4], ch_out=self.channels_conv[-5], depth=self.block_depth[1],drop_path=self.drop)
+        self.dconv_1 = ModSCPA(ch_in=self.channels_conv[-5], ch_out=self.channels_conv[-5], depth=self.block_depth[0],drop_path=self.drop)
 
         self.classify = nn.Conv2d(self.channels_conv[-5], self.n_classes, kernel_size=(1,1))
 
