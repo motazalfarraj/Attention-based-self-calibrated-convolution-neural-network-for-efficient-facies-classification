@@ -3,10 +3,6 @@
  [Motaz Alfarraj](http://www.motaz.xyz)
 
 
-[![DOI](https://zenodo.org/badge/165411165.svg)](https://zenodo.org/badge/latestdoi/165411165)
-
-
-
 This repository includes the codes for the paper: 
 
 '**Attention-based self-calibrated convolution neural network for efficient facies classification**' that is published in the SEG/AAPG International Meeting for Applied Geoscience & Energy, Houston, Texas, August 2024. [[Link]]([https://library.seg.org/doi/10.1190/INT-2018-0249.1](https://onepetro.org/SEGAM/proceedings-abstract/IMAGE24/IMAGE24/620897))
