@@ -1,24 +1,19 @@
 import argparse
 import os
-from datetime import datetime
 from os.path import join as pjoin
-import random
+from datetime import datetime
 import numpy as np
 import torch
 import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
 from tensorboardX import SummaryWriter
 from torch.utils import data
-from tqdm import tqdm
-
 import core.loss
-import torchvision.utils as vutils
-from core.augmentations import (
-    Compose, RandomHorizontallyFlip, RandomRotate, AddNoise, RandomZoom)
+from core.augmentations import (Compose, RandomHorizontallyFlip, RandomRotate, AddNoise)
 from core.loader.data_loader import *
 from core.metrics import runningScore
 from core.models import get_model
-from core.utils import np_to_tb
+
 
 # Fix the random seeds: 
 torch.backends.cudnn.deterministic = True
@@ -233,7 +228,7 @@ def train(args):
 
                     if (i_val) % 20 == 0:
                         print("Epoch [%d/%d] validation Loss: %.4f" %
-                              (epoch, args.n_epoch, loss.item()))
+                              (epoch + 1, args.n_epoch, loss.item()))
 
                 score, class_iou = running_metrics_val.get_scores()
                 for k, v in score.items():
@@ -242,14 +237,10 @@ def train(args):
                     else:
                         print("              ", k, v)
 
-                writer.add_scalar(
-                    'val/Pixel Acc', score['Pixel Acc: '], epoch+1)
+                writer.add_scalar('val/Pixel Acc', score['Pixel Acc: '], epoch+1)
                 writer.add_scalar('val/Mean IoU', score['Mean IoU: '], epoch+1)
-                writer.add_scalar('val/Mean Class Acc',
-                                  score['Mean Class Acc: '], epoch+1)
-                writer.add_scalar('val/Freq Weighted IoU',
-                                  score['Freq Weighted IoU: '], epoch+1)
-
+                writer.add_scalar('val/Mean Class Acc', score['Mean Class Acc: '], epoch+1)
+                writer.add_scalar('val/Freq Weighted IoU', score['Freq Weighted IoU: '], epoch+1)
                 writer.add_scalar('val/loss', loss.item(), epoch+1)
                 running_metrics_val.reset()
 
@@ -275,8 +266,8 @@ def train(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
-    parser.add_argument('--arch', nargs='?', type=str, default='SCPANet_skip',
-                        help='Architecture to use [\'PSNet, patch_deconvnet, patch_deconvnet_skip, section_deconvnet, section_deconvnet_skip\']')
+    parser.add_argument('--arch', nargs='?', type=str, default='my_model',
+                        help='Architecture to use [\'patch_deconvnet, patch_deconvnet_skip, section_deconvnet, section_deconvnet_skip\']')
     parser.add_argument('--n_epoch', nargs='?', type=int, default=64,
                         help='# of the epochs')
     parser.add_argument('--batch_size', nargs='?', type=int, default=32,

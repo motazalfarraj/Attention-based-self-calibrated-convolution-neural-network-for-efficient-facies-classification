@@ -1,9 +1,8 @@
 import torchvision.models as models
+from core.models.patch_deconvnet import *
 from core.models.section_deconvnet import *
-from core.models.SCPANet import *
-from core.models.scratch.PS import PSNet
-from core.models.scratch.UNet import DilatedUNet
-from core.models.ViTNet import dnn_18
+from core.models.my_model import *
+
 
 
 def get_model(name, pretrained, n_classes):
@@ -22,8 +21,6 @@ def _get_model_instance(name):
         return {
             'section_deconvnet': section_deconvnet,
             'section_deconvnet_skip': section_deconvnet_skip,
-            'SCPANet_skip':SCPANet_skip,
-            'UNet': DilatedUNet,
-            'PSNet':PSNet,}[name]
+            'my_model':MyModel,}[name]
     except:
         print(f'Model {name} not available')
