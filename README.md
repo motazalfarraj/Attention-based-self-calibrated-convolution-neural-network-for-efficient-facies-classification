@@ -1,6 +1,6 @@
-# A Machine Learning Benchmark for Facies Classification
+# Attention-based self-calibrated convolution neural network for efficient facies classification
 
-[Yazeed Alaudah](http://www.yalaudah.com), Patrycja Michalowicz, [Motaz Alfarraj](http://www.motaz.me), and [Ghassan AlRegib](http://www.ghassanalregib.com)
+ [Motaz Alfarraj](http://www.motaz.xyz)
 
 
 [![DOI](https://zenodo.org/badge/165411165.svg)](https://zenodo.org/badge/latestdoi/165411165)
@@ -9,20 +9,16 @@
 
 This repository includes the codes for the paper: 
 
-'**A Machine Learning Benchmark for Facies Classification**' that is published in the SEG *Interpretation* journal. [[arXiv]](https://arxiv.org/abs/1901.07659)[[SEG Digital Library]](https://library.seg.org/doi/10.1190/INT-2018-0249.1)
+'**Attention-based self-calibrated convolution neural network for efficient facies classification**' that is published in the SEG/AAPG International Meeting for Applied Geoscience & Energy, Houston, Texas, August 2024. [[Link]]([https://library.seg.org/doi/10.1190/INT-2018-0249.1](https://onepetro.org/SEGAM/proceedings-abstract/IMAGE24/IMAGE24/620897))
 
-The code in mainly built using the [PyTorch](https://pytorch.org/) deep learning library. 
+The code is forked from [[Facies Classification Benchmark]] (https://github.com/yalaudah/facies_classification_benchmark)
 
 --------
 
 ![model](core/model.png)
 
 ## Abstract
-
-The recent interest in using deep learning for seismic interpretation tasks, such as facies classification, has been facing a significant obstacle, namely the absence of large publicly available annotated datasets for training and testing models. As a result, researchers have often resorted to annotating their own training and testing data. However, different researchers may annotate different classes, or use different train and test splits. In addition, it is common for papers that apply deep learning for facies classification to not contain quantitative results, and rather rely solely on visual inspection of the results. All of these practices have lead to subjective results and have greatly hindered the ability to compare different machine learning models against each other and understand the advantages and disadvantages of each approach. 
-
-To address these issues, we open-source an accurate 3D geological model of the Netherlands F3 Block. This geological model is based on both well log data and 3D seismic data and is grounded on the careful study of the geology of the region. Furthermore, we propose two baseline models for facies classification based on deconvolution networks and make their codes publicly available. Finally, we propose a scheme for evaluating different models on this dataset, and we share the results of our baseline models. In addition to making the dataset and the code publicly available, this work can help advance research in this area and create an objective benchmark for comparing the results of different machine learning approaches for facies classification for researchers to use in the future.
-
+Recent advances in deep learning and computer vision have resulted in giant leaps in automating some of the cumbersome oil and gas exploration and production operations. Deep convolutional neural networks have been widely used for seismic interpretation tasks including detection, classification, and segmentation of various subsurface geological phenomena. The downside of deep neural networks is that their data requirements increase heavily as their complexity increases. Although seismic data is abundantly available, such networks require annotated data which is an expensive and time-consuming process. In this work, we present a deep model for facies classification that leverages an attention-based self-calibrated convolution to achieve superior results while maintaining a relatively low model complexity. The model was trained and tested on a publicly available dataset for facies classification based on the Netherlands F3 block \cite[]{dataset}. The proposed model outperforms other models in the literature for facies classification while maintaining a lower complexity in terms of the number of parameters and the multiply-accumulate operations of the model. 
 
 
 ## Dataset
@@ -64,70 +60,18 @@ train_seismic = np.load('data/train/train_seismic.npy')
 
 **Make sure the testing data is only used once after all models are trained. Using the test set multiple times makes it a validation set.**
 
-We also provide fault planes, and the raw horizons that were used to generate the data volumes in addition to the processed data volumes before splitting to training and testing. If you're interested in this data, you can download it from [here](https://zenodo.org/record/3755060/files/raw.zip). In addition, you can download the well log files from [here](https://zenodo.org/record/3755060/files/logs.zip). 
-
-  
-
-## Getting Started
-
-There are two main models in this repo, a patch-based model and a section-based model. Each has its own train and test files. But before you run the code, make sure you have the following packages installed:
-
-### Prerequisites:
-
-The version numbers are the exact ones I've used, but newer versions should works just fine. 
-
-```
-Pillow == 5.2.0
-matplotlib == 2.0.2
-numpy == 1.15.1
-tensorboardX == 1.4 # from here: https://github.com/lanpa/tensorboardX
-torch == 0.4.1
-torchvision == 0.2.1
-tqdm == 4.14.0
-scikit-learn == 0.18.1
-```
-
-### Training: 
-
-To train the patch-based model with a different batch size and with augmentation,  you can run:
-
-```bash
-python patch_train.py --batch_size 32 --aug True
-```
-
-Unless you specify the options you want, the default ones (listed in `patch_train.py` will be used). Similarly, you can do the same thing for the section-based model. 
-
-### Testing:
-
-To test a model, you have to specify the path to the trained model. For example, you can run: 
-
-```bash
-python patch_test.py --model_path 'path/to/trained_model.pkl' 
-```
-
-In order to be consistent with the results of the paper, we suggest you keep all the test options to their default values (such as `test_stride` , `crossline` and `inline` ). Feel free to change the test `split` if you do not want to test on both test splits, and make sure you update `train_patch_size` if it was changed during training. Once the test code is finished, it will print the results in the terminal. You can also view the test results, both images and metrics, in Tensorboard.  
-
 
 ## Citation: 
 
-If you have found our code and data useful, we kindly ask you to cite our work. You can cite our *Interpretation* journal: 
+If you have found our code useful, we kindly ask you to cite our work. You can cite the following: 
 ```tex
-@article{alaudah2019machine,
-author = {Yazeed Alaudah and Patrycja Michałowicz and Motaz Alfarraj and Ghassan AlRegib},
-title = {A machine-learning benchmark for facies classification},
-journal = {Interpretation},
-volume = {7},
-number = {3},
-pages = {SE175-SE187},
-year = {2019},
-doi = {10.1190/INT-2018-0249.1},
-URL = {https://doi.org/10.1190/INT-2018-0249.1},
-eprint = {https://doi.org/10.1190/INT-2018-0249.1}
+@inproceedings{alfarraj2024attention,
+  title={Attention-based self-calibrated convolution neural network for efficient facies classification},
+  author={Alfarraj, Motaz},
+  booktitle={SEG International Exposition and Annual Meeting},
+  pages={SEG--2024},
+  year={2024},
+  organization={SEG}
 }
+
 ```
-The arXiv preprint is available at: [https://arxiv.org/abs/1901.07659](https://arxiv.org/abs/1901.07659). The paper is also available in the SEG Digital Library: [https://library.seg.org/doi/10.1190/INT-2018-0249.1](https://library.seg.org/doi/10.1190/INT-2018-0249.1)
-
-
-## Questions?
-
-The code and data are provided as is with no guarantees. If you have any questions, regarding the dataset or the code, you can contact me at (yalaudah [at] gmail [dot] com), or even better open an issue in this repo and we'll do our best to help.
