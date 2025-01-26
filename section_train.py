@@ -128,7 +128,7 @@ def train(args):
         model = get_model(args.arch, args.pretrained, n_classes)
 
         # Use as many GPUs as we can
-        model = torch.nn.DataParallel(model, device_ids=[0,1])
+        model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
         model = model.to(device)  # Send to GPU
 
     # PYTROCH NOTE: ALWAYS CONSTRUCT OPTIMIZERS AFTER MODEL IS PUSHED TO GPU/CPU,
